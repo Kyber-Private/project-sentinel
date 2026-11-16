@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+html, body { background: #f7f8fc; color: #17233f; }
+body {
+  background-image: radial-gradient(ellipse 75% 28% at 82% 0%, rgba(99, 91, 255, 0.055), transparent 75%);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: rgba(99, 91, 255, 0.19); }
+code { font-size: 0.85em; background: #f1f4fb; padding: 0.1em 0.35em; border-radius: 4px; }
