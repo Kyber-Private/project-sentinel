@@ -83,6 +83,14 @@ def project_line(p: ProjectForecast) -> dict:
 
 
 def overall_label(cf: CompanyForecast, projects: list[ProjectForecast]) -> tuple[str, str]:
+    # Operating profitability is the central business-health signal. A sharp,
+    # unfavorable profit decline should not be labeled "MIXED" just because
+    # revenue also increased; that would contradict the financial headline.
+    profit = cf.get("operating_profit") or cf.get("net_profit")
+    if (profit and profit.forecast and profit.effect == "unfavorable"
+            and profit.direction == "decrease" and profit.change_pct is not None
+            and profit.change_pct <= -10):
+        return "LIKELY DETERIORATING", "unfavorable"
     score = 0.0
     signals = 0
     pos = neg = 0

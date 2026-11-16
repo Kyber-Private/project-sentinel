@@ -2,8 +2,33 @@
 
 Upload your business documents. Answer a few intelligent questions. Understand where your finances are heading and why.
 
-Sentinel reads PDF, Word, Excel, CSV, and text files, extracts the financial facts with their sources, asks only the questions that change the forecast, runs four AI agents with separate jobs (using the configured model, GPT-6 Luna by default), calculates forecasts in Python, and shows a one-screen outlook with the evidence behind it.
+Sentinel reads PDF, Word, Excel, CSV, and text files, extracts the financial facts with their sources, asks only the questions that change the forecast, runs four AI agent roles locally with Ollama Qwen3 8B (no API key), calculates forecasts in Python, and shows a one-screen outlook with the evidence behind it.
 
+
+## Recommended: run with Ollama (no API key)
+
+On Windows, install [Ollama](https://ollama.com/download/windows), extract the project, and double-click **`Start Sentinel Local AI.bat`**. The launcher checks for `qwen3:8b` and downloads it if needed. Keep ports **3000** and **8000** free by closing older Sentinel instances. Open **http://localhost:3000**.
+
+To test **fresh, real local-model calls** for all four agents, run **`VERIFY_REAL_OLLAMA.bat`** from the project root while the local backend is running. This saves `OLLAMA_LIVE_TEST_RESULT.txt`. A passing result is required before claiming the four-agent run has been validated on your hardware. The model and other dependencies are not bundled with this source ZIP.
+
+This local extraction revision reduces each Data Analyst response to at most two quoted observations and verifies them against their actual source. **65 focused offline checks passed** and the real Nova documents produced both project forecasts, but a fresh, successful four-agent Qwen3 run on Windows is still required; do not claim it has passed before running `VERIFY_REAL_OLLAMA.bat`. See `docs/Project_Sentinel_Writeup.docx` for the hackathon write-up.
+
+## Keyless local AI option (experimental)
+
+Sentinel can run all four AI roles using one locally installed **Qwen3 8B** open-weight model through Ollama. **No OpenAI/OpenRouter API key is required.** The model is NOT the same quality as GPT-6 Luna, and **live Ollama inference has not been benchmarked or confirmed on judges' hardware**. Deterministic financial calculations and source checking stay in Python.
+
+**Windows setup:**
+
+1. Install Ollama from https://ollama.com/download/windows and start Ollama.
+2. In Command Prompt, run `ollama pull qwen3:8b` (~5 GB model download). For less RAM, try `ollama pull qwen3:4b` and set `SENTINEL_OLLAMA_MODEL=qwen3:4b` (lower accuracy).
+3. In `backend/.env` set `SENTINEL_AI_PROVIDER=ollama` and `SENTINEL_OLLAMA_MODEL=qwen3:8b`. You can leave `OPENAI_API_KEY` empty.
+4. Run backend and frontend normally, then use `POST http://localhost:8000/api/health/openai-test` to verify the model is returning structured responses.
+
+Alternatively, use **Start Sentinel Local AI.bat** from the project root; it checks your dependencies, offers to download the model, and starts both servers. It does not rewrite or expose any cloud API key.
+
+**For hackathon judges:** This local option requires running Ollama and downloading the model on *their own* machine. Merely viewing GitHub does not give a browser-based working demo. A hosted deployment or demonstration video is needed for zero-install access. This is a prototype; avoid confidential financial data.
+
+---
 
 ## Dashboard preview
 
@@ -13,7 +38,7 @@ The redesigned interface presents a plain-language outlook, three key metrics, c
 
 ## Quick start on Windows
 
-**Prerequisites:** Python 3.11–3.13 and Node.js installed. The backend and frontend run in separate Command Prompt windows.
+**Recommended for this release:** Install Python 3.11–3.13, Node.js and Ollama. Run `Start Sentinel Local AI.bat` from the project root. The older manual cloud-key setup below is retained solely for developers using the optional legacy provider.
 
 1. From the `backend` folder, run:
 
@@ -70,7 +95,7 @@ The forecast engine runs before Emily and Sebas so they explain real calculation
 
 - Python 3.11 or newer
 - Node.js 18 or newer
-- An OpenAI API key with access to the model in `OPENAI_MODEL` (default `gpt-6-luna`)
+- Optional: an OpenAI/OpenRouter API key for cloud AI, **or** local Ollama + Qwen3 for keyless AI
 
 ## Install
 
@@ -108,7 +133,7 @@ Open http://localhost:3000. The frontend proxies `/api` to the backend, so the A
 
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
-| `OPENAI_API_KEY` | For agents | none | Enables the four agents. Without it, Sentinel runs extraction and forecasting only and says so on every screen. |
+| `OPENAI_API_KEY` | Optional cloud mode only | none | Not used in the recommended Ollama mode. |
 | `OPENAI_MODEL` | No | `gpt-6-luna` | Model used by every agent. |
 | `OPENAI_REASONING_EFFORT` | No | `medium` | Sent as `reasoning.effort`. Leave empty for models that do not accept it. Sentinel also drops it automatically if the API rejects it. |
 | `OPENAI_TIMEOUT_SECONDS` | No | `120` | Per-request timeout. |

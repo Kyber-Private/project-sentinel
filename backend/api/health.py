@@ -15,9 +15,9 @@ def health():
         "ok": True,
         "ai_enabled": settings.ai_enabled,
         "model": settings.openai_model,
-        "provider": "openrouter" if settings.using_openrouter else "openai",
+        "provider": "ollama" if settings.using_ollama else ("openrouter" if settings.using_openrouter else "openai"),
         "setup_message": None if settings.ai_enabled else (
-            "AI agents are not configured. Add OPENAI_API_KEY to backend/.env and restart the backend. "
+            "AI agents are not configured. Add OPENAI_API_KEY to backend/.env or set SENTINEL_AI_PROVIDER=ollama and restart. "
             "Until then Sentinel runs document extraction and the forecasting engine only, and says so in every result."
         ),
     }

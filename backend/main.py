@@ -22,7 +22,7 @@ async def lifespan(_app: FastAPI):
     init_db()
     if not settings.ai_enabled:
         logging.getLogger("sentinel").warning(
-            "OPENAI_API_KEY is not set. AI agents are disabled; the deterministic pipeline still runs."
+            "AI provider is not configured. Agents are disabled; deterministic forecasting still runs."
         )
     yield
 

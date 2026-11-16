@@ -1,0 +1,21 @@
+PROJECT SENTINEL - COMPLETE LOCAL AI RELEASE
+
+This package includes the complete frontend, backend, Nova sample documents,
+Ollama launcher, AI reliability fixes, test suite and updated hackathon write-up.
+No API key, cloud credentials, virtual environment, or node_modules are included.
+
+WINDOWS START
+1. Extract this ZIP (do not run from inside the ZIP).
+2. Install Ollama from https://ollama.com/download/windows if needed.
+3. Make sure ports 3000 and 8000 are available (close old Sentinel servers).
+4. Double-click Start Sentinel Local AI.bat in the project-sentinel folder.
+5. Open http://localhost:3000 and start a NEW Nova Industries sample analysis.
+6. Run VERIFY_REAL_OLLAMA.bat while the local backend is running.
+   Only publish the live-AI claims after it reports ALL REAL OLLAMA CHECKS PASSED.
+
+The model qwen3:8b is downloaded by the launcher if missing.
+The first run installs Python and Node dependencies; internet is required for those.
+Judges must have Ollama and appropriate local computing resources.
+The real 4-agent execution has not been verified on this release environment.
+
+Write-up: docs/Project_Sentinel_Writeup.docx

@@ -93,6 +93,9 @@ def call_structured(
     max_output_tokens: int = 16000,
 ) -> tuple[T, CallMeta]:
     """Run one Responses API call and return a validated schema instance."""
+    if settings.using_ollama:
+        return _call_ollama(agent, instructions, user_input, schema, max_output_tokens)
+
     try:
         import openai
     except ImportError as exc:  # pragma: no cover
@@ -206,6 +209,79 @@ def call_structured(
         except AgentError as exc:
             last_error = exc
     raise AgentError(f"{agent}: failed after {attempts} attempt(s): {last_error}")
+
+
+
+def _call_ollama(
+    agent: str,
+    instructions: str,
+    user_input: Any,
+    schema: Type[T],
+    max_output_tokens: int,
+) -> tuple[T, CallMeta]:
+    """Local model via Ollama's JSON-schema-constrained /api/chat endpoint.
+
+    Strictly local: no API key, no cloud endpoint, and schema validation remains
+    mandatory. Smaller models may still get facts wrong; original review checks
+    and deterministic financial calculations are retained.
+    """
+    import httpx
+
+    start = time.monotonic()
+    last_error = None
+    attempts = 0
+    budget = min(max_output_tokens, 9000)
+    payload = {
+        "model": settings.ollama_model,
+        "messages": [
+            {"role": "system", "content": instructions + "\nReturn a valid JSON object matching the provided schema. Do not invent evidence."},
+            {"role": "user", "content": _input_as_text(user_input)},
+        ],
+        "format": schema.model_json_schema(),
+        "stream": False,
+        "think": False,
+        "keep_alive": "30m",
+        "options": {"temperature": 0, "num_ctx": settings.ollama_context, "num_predict": budget},
+    }
+    for attempts in range(1, max(1, settings.openai_max_retries + 1) + 1):
+        try:
+            with httpx.Client(timeout=settings.openai_timeout_seconds, trust_env=False) as client:
+                response = client.post(settings.ollama_url + "/api/chat", json=payload)
+                response.raise_for_status()
+                body = response.json()
+            message = body.get("message") or {}
+            raw = message.get("content") or ""
+            if not raw:
+                raise AgentError(f"{agent}: local model returned an empty response")
+            if body.get("done_reason") == "length":
+                raise AgentError(f"{agent}: Ollama response hit the {budget}-token output limit; retry with a shorter document batch")
+            parsed = schema.model_validate(_json_from_text(raw))
+            return parsed, CallMeta(
+                model=settings.ollama_model,
+                duration_ms=int((time.monotonic() - start) * 1000),
+                tokens_in=body.get("prompt_eval_count"),
+                tokens_out=body.get("eval_count"),
+                response_id=None,
+                attempts=attempts,
+            )
+        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+            raise AgentError(
+                "Ollama is not running. Install it from ollama.com, start it, "
+                "then run 'ollama pull " + settings.ollama_model + "'."
+            ) from exc
+        except httpx.HTTPStatusError as exc:
+            msg = exc.response.text[:250]
+            if exc.response.status_code == 404:
+                raise AgentError(
+                    f"Local model {settings.ollama_model!r} is not installed. "
+                    f"Run: ollama pull {settings.ollama_model}"
+                ) from exc
+            last_error = f"HTTP {exc.response.status_code}: {msg}"
+        except (ValidationError, ValueError, AgentError, httpx.TimeoutException) as exc:
+            last_error = str(exc)[:400]
+        if attempts < settings.openai_max_retries + 1:
+            time.sleep(0.3)
+    raise AgentError(f"{agent}: local model could not produce valid structured output after {attempts} tries: {last_error}")
 
 
 def _json_from_text(text: str) -> Any:

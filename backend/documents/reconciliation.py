@@ -50,9 +50,14 @@ def reconcile(facts: list[Fact], issues: list[DataQualityIssue], meta: dict) -> 
             continue
         if f.value is None and f.text_value is None:
             continue
-        key = (f.entity_type, f.entity.lower(), f.metric, f.period, (f.dimension or "").lower(), f.qualifier or "")
+        # A local AI may extract a narrative observation for a metric that
+        # already has a numeric table value. Keep text-only evidence separate:
+        # comparing None with a float would crash numeric conflict detection.
+        kind = "numeric" if f.value is not None else "text"
+        key = (f.entity_type, f.entity.lower(), f.metric, f.period,
+               (f.dimension or "").lower(), f.qualifier or "", kind)
         if f.metric in ("budget_revised",):
-            key = key[:-1]  # qualifier text varies across mentions
+            key = key[:-2] + (kind,)  # qualifier text varies across mentions
         groups[key].append(f)
 
     for key, members in groups.items():
@@ -76,8 +81,26 @@ def reconcile(facts: list[Fact], issues: list[DataQualityIssue], meta: dict) -> 
                     )
                 )
         if diff:
+            # Text-only observations can disagree in wording without
+            # constituting a contradictory financial amount. Keep their
+            # provenance; do not invent a numeric conflict from null values.
+            if kept.value is None:
+                issues.append(DataQualityIssue(
+                    severity="info",
+                    message=f"{_label(kept)} has differing text descriptions; review the cited sources.",
+                    fact_ids=[kept.id] + [d.id for d in diff],
+                ))
+                continue
             vals = [kept.value] + [d.value for d in diff]
-            spread = (max(vals) - min(vals)) / max(1.0, abs(max(vals, key=abs)))
+            numeric_vals = [v for v in vals if v is not None]
+            if len(numeric_vals) != len(vals):
+                issues.append(DataQualityIssue(
+                    severity="warning",
+                    message=f"{_label(kept)} has a numeric/text mismatch; review the cited sources.",
+                    fact_ids=[kept.id] + [d.id for d in diff],
+                ))
+                continue
+            spread = (max(numeric_vals) - min(numeric_vals)) / max(1.0, abs(max(numeric_vals, key=abs)))
             conflicts.append(
                 Conflict(
                     id=f"C{len(conflicts)+1:03d}", entity=kept.entity, metric=kept.metric, period=kept.period,

@@ -66,22 +66,22 @@ def gross_margin_pct(revenue: Optional[float], cogs: Optional[float]) -> Optiona
 
 
 def months_between(start: str, end: str) -> int:
-    """Whole calendar months between supported numeric and written-month dates."""
+    """Whole months between ISO periods or written calendar months."""
     from datetime import datetime
 
-    def parse_month(value: str) -> tuple[int, int]:
-        text = str(value).strip()
+    def parse(value: str):
+        value = str(value).strip()
         for fmt in ("%Y-%m", "%Y-%m-%d", "%B %Y", "%b %Y", "%B %d, %Y", "%b %d, %Y", "%m/%Y"):
             try:
-                dt = datetime.strptime(text, fmt)
-                return dt.year, dt.month
+                date = datetime.strptime(value, fmt)
+                return date.year, date.month
             except ValueError:
-                continue
-        raise ValueError(f"Unsupported date format: {text!r}")
+                pass
+        raise ValueError(f"Unsupported date format: {value!r}")
 
-    start_year, start_month = parse_month(start)
-    end_year, end_month = parse_month(end)
-    return (end_year - start_year) * 12 + end_month - start_month
+    y1, m1 = parse(start)
+    y2, m2 = parse(end)
+    return (y2 - y1) * 12 + m2 - m1
 
 
 def add_months(period: str, n: int) -> str:

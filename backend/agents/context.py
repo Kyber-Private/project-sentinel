@@ -118,7 +118,7 @@ def notes(ex: ExtractionResult) -> list[str]:
 def company_context(ex: ExtractionResult, cf: CompanyForecast, drivers: list[Driver], answers: list[dict]) -> dict:
     cats: dict[str, list[str]] = defaultdict(list)
     for f in ex.active_facts():
-        if f.metric == "expense_category" and f.period:
+        if f.metric == "expense_category" and f.period and f.value is not None:
             cats[f.dimension or "Other"].append(f"{f.period}: {f.value:,.0f} [{f.id}]")
     return {
         "company": ex.company_name, "currency": ex.currency, "latest_period": ex.as_of_period,
@@ -130,7 +130,7 @@ def company_context(ex: ExtractionResult, cf: CompanyForecast, drivers: list[Dri
         "document_notes": notes(ex),
         "supplier_price_changes": [
             f"{f.id}: {f.entity} {f.value:g}% effective {f.attributes.get('effective_date')}"
-            for f in ex.active_facts() if f.metric == "supplier_price_change_pct"
+            for f in ex.active_facts() if f.metric == "supplier_price_change_pct" and f.value is not None
         ],
         "data_quality_issues": [i.message for i in ex.issues][:15],
         "forecast_notes": cf.notes,

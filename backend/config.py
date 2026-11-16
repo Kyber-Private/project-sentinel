@@ -27,6 +27,12 @@ _load_dotenv()
 
 class Settings:
     def __init__(self) -> None:
+        # Local AI is opt-in. Existing OpenAI/OpenRouter installations keep working.
+        self.ai_provider: str = os.environ.get("SENTINEL_AI_PROVIDER", "auto").strip().lower()
+        self.using_ollama: bool = self.ai_provider == "ollama"
+        self.ollama_model: str = os.environ.get("SENTINEL_OLLAMA_MODEL", "qwen3:8b")
+        self.ollama_url: str = "http://127.0.0.1:11434"  # deliberately loopback-only
+        self.ollama_context: int = int(os.environ.get("SENTINEL_OLLAMA_CONTEXT", "16384"))
         self.openai_api_key: str | None = os.environ.get("OPENAI_API_KEY") or None
         # OpenRouter keys start with "sk-or-". They need OpenRouter's address and model names like "openai/gpt-6-luna".
         base = os.environ.get("OPENAI_BASE_URL") or None
@@ -39,8 +45,8 @@ class Settings:
         model = os.environ.get("OPENAI_MODEL", "gpt-6-luna")
         if self.using_openrouter and "/" not in model:
             model = "openai/" + model
-        self.openai_model: str = model
-        self.openai_timeout_seconds: float = float(os.environ.get("OPENAI_TIMEOUT_SECONDS", "120"))
+        self.openai_model: str = self.ollama_model if self.using_ollama else model
+        self.openai_timeout_seconds: float = float(os.environ.get("OPENAI_TIMEOUT_SECONDS", "300" if self.using_ollama else "120"))
         self.openai_max_retries: int = int(os.environ.get("OPENAI_MAX_RETRIES", "2"))
         self.data_dir: Path = Path(os.environ.get("SENTINEL_DATA_DIR", str(BASE_DIR / "data")))
         self.database_url: str = os.environ.get(
@@ -65,7 +71,7 @@ class Settings:
 
     @property
     def ai_enabled(self) -> bool:
-        return bool(self.openai_api_key)
+        return self.using_ollama or bool(self.openai_api_key)
 
 
 settings = Settings()
