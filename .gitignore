@@ -1,0 +1,37 @@
+# Local secrets: never commit API keys
+.env
+.env.*
+!.env.example
+!backend/.env.example
+*.pem
+*.key
+
+# Backend data and uploads
+backend/data/
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.log
+
+# Python
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Node / Next.js
+**/node_modules/
+**/.next/
+*.tsbuildinfo
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Backups / exports
+UI_BACKUP_BEFORE_REDESIGN_*/
+*.backup
